@@ -52,12 +52,12 @@
         <div class="section-heading"><div><div class="eyebrow">ENGINE REPORT</div><h2>Game insights</h2></div><div class="analysis-controls"><label>Depth <select id="depth"><option value="10">10 · Quick</option><option value="13" selected>13 · Strong</option><option value="16">16 · Deep</option></select></label><button class="primary" id="analyse">Analyse game <span>↗</span></button></div></div>
         <div class="progress-wrap hidden" id="progressWrap"><div class="progress-track"><div id="progressBar"></div></div><div id="progressText">Preparing engine…</div></div>
         <div class="stats-grid">
-          <div class="stat"><span>WHITE ACCURACY</span><strong id="whiteAccuracy">—</strong><small id="whiteCounts">Awaiting analysis</small></div>
-          <div class="stat"><span>BLACK ACCURACY</span><strong id="blackAccuracy">—</strong><small id="blackCounts">Awaiting analysis</small></div>
+          <div class="stat"><span>EST. WHITE ACCURACY</span><strong id="whiteAccuracy">—</strong><small id="whiteCounts">Awaiting analysis</small></div>
+          <div class="stat"><span>EST. BLACK ACCURACY</span><strong id="blackAccuracy">—</strong><small id="blackCounts">Awaiting analysis</small></div>
           <div class="stat"><span>BIGGEST SWING</span><strong id="biggestSwing">—</strong><small>Largest evaluation loss</small></div>
           <div class="stat"><span>OPENING</span><strong class="opening-name" id="openingName">—</strong><small id="openingEco">From PGN metadata</small></div>
         </div>
-        <div class="review-columns"><div><h3>Move-by-move verdicts</h3><div id="verdicts" class="verdict-list"><div class="empty-state">Start engine analysis to see move classifications.</div></div></div><div class="coach-card"><div class="coach-icon">✦</div><h3>Coach's note</h3><p id="coachNote">Your review will highlight the critical moments, missed opportunities and best continuations.</p></div></div>
+        <div class="review-columns"><div><h3>Move-by-move verdicts</h3><p class="fineprint">Centipawn loss, estimated move score and the engine’s best alternative.</p><div id="verdicts" class="verdict-list"><div class="empty-state">Start engine analysis to see move classifications.</div></div></div><div class="coach-card"><div class="coach-icon">✦</div><h3>Coach's note</h3><p id="coachNote">Your review will highlight the critical moments, missed opportunities and best continuations.</p></div></div>
       </section>
       <footer class="disclaimer">MateScope is an independent project and is not affiliated with Chess.com. Engine evaluations are computer estimates, not guarantees.</footer>
     </section>
