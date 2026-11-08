@@ -60,18 +60,23 @@ function engineMessage(line){
 }
 function search(fen,depth){return new Promise(resolve=>{side=fen.split(" ")[1];score=0;resolveSearch=resolve;state.worker.postMessage("position fen "+fen);state.worker.postMessage("go depth "+depth);});}
 function classify(n){return n<=18?"Best":n<=45?"Excellent":n<=90?"Good":n<=160?"Inaccuracy":n<=300?"Mistake":"Blunder";}
+function uciToSan(fen,uci){
+ if(!uci||uci==="(none)"||uci==="0000")return "—";
+ try{const g=new Chess(fen),from=uci.slice(0,2),to=uci.slice(2,4),promotion=uci[4]||"q";return g.move({from,to,promotion}).san;}catch{return uci;}
+}
+function moveAccuracy(loss){return Math.max(0,100*Math.exp(-Math.max(0,loss)/400));}
 $("analyse").onclick=async()=>{
  if(!state.moves.length||$("analyse").disabled)return;$("analyse").disabled=true;$("progressWrap").classList.remove("hidden");$("progressBar").style.width="0%";
  try{
   if(!state.worker){state.ready=false;status("Starting local Stockfish engine…");const workerUrl=new URL("./engine/stockfish-19-lite-single.js",import.meta.url);state.worker=new Worker(workerUrl);state.worker.onmessage=e=>engineMessage(String(e.data));state.worker.onerror=e=>{status("Local Stockfish worker error: "+(e.message||"engine failed to load"),true);state.worker?.terminate();state.worker=null;state.ready=false;};state.worker.postMessage("uci");}
   for(let i=0;i<300&&!state.ready;i++)await new Promise(r=>setTimeout(r,100));if(!state.ready){state.worker?.terminate();state.worker=null;throw new Error("Local Stockfish did not answer within 30 seconds. Check that the engine files have been added by the Vendor Stockfish workflow.");}
   let depth=Number($("depth").value),prev=await search(state.positions[0],depth),vals=[prev.score],rows=[],acc={w:[],b:[]};
-  for(let i=0;i<state.moves.length;i++){let m=state.moves[i],next=await search(state.positions[i+1],depth),loss=m.color==="w"?prev.score-next.score:next.score-prev.score;loss=Math.max(0,loss);let verdict=classify(loss);rows.push({ply:i+1,move:m.san,color:m.color,loss,verdict,best:prev.best});acc[m.color].push(Math.max(0,100-Math.pow(loss/100,.75)*9));vals.push(next.score);prev=next;$("progressBar").style.width=Math.round((i+1)/state.moves.length*100)+"%";$("progressText").textContent="Analysing move "+(i+1)+" of "+state.moves.length+" · depth "+depth;}
+  for(let i=0;i<state.moves.length;i++){let m=state.moves[i],next=await search(state.positions[i+1],depth),loss=m.color==="w"?prev.score-next.score:next.score-prev.score;loss=Math.max(0,loss);let verdict=classify(loss),bestSan=uciToSan(state.positions[i],prev.best);rows.push({ply:i+1,move:m.san,color:m.color,loss,verdict,best:prev.best,bestSan});acc[m.color].push(moveAccuracy(loss));vals.push(next.score);prev=next;$("progressBar").style.width=Math.round((i+1)/state.moves.length*100)+"%";$("progressText").textContent="Analysing move "+(i+1)+" of "+state.moves.length+" · depth "+depth;}
   state.evals=vals;chart(vals);renderBoard();
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;$("whiteAccuracy").textContent=avg(acc.w).toFixed(1)+"%";$("blackAccuracy").textContent=avg(acc.b).toFixed(1)+"%";
   ["w","b"].forEach((c)=>{let a=rows.filter(r=>r.color===c),id=c==="w"?"whiteCounts":"blackCounts";$(id).textContent=a.filter(r=>r.verdict==="Blunder").length+" blunders · "+a.filter(r=>r.verdict==="Mistake").length+" mistakes · "+a.filter(r=>r.verdict==="Inaccuracy").length+" inaccuracies";});
-  let worst=[...rows].sort((a,b)=>b.loss-a.loss)[0];$("biggestSwing").textContent=worst?worst.loss+" cp":"—";
-  $("verdicts").innerHTML=rows.map(r=>'<div class="verdict"><span class="move">'+Math.ceil(r.ply/2)+(r.color==="w"?".":"...")+" "+r.move+'</span><small>'+r.loss+' cp loss · best '+r.best+'</small><span class="tag '+r.verdict.toLowerCase()+'">'+r.verdict.toUpperCase()+'</span></div>').join("");
+  let worst=[...rows].sort((a,b)=>b.loss-a.loss)[0];$("biggestSwing").textContent=worst?worst.loss+" cp · "+Math.ceil(worst.ply/2)+(worst.color==="w"?".":"..."):"—";
+  $("verdicts").innerHTML=rows.map(r=>'<div class="verdict"><span class="move">'+Math.ceil(r.ply/2)+(r.color==="w"?".":"...")+" "+r.move+'</span><small>'+r.loss+' cp loss · '+moveAccuracy(r.loss).toFixed(0)+'% move score</small><span class="best-line">Best: <b>'+r.bestSan+'</b></span><span class="tag '+r.verdict.toLowerCase()+'">'+r.verdict.toUpperCase()+'</span></div>').join("");
   let bl=rows.filter(r=>r.verdict==="Blunder").length,mi=rows.filter(r=>r.verdict==="Mistake").length,ina=rows.filter(r=>r.verdict==="Inaccuracy").length;
   $("coachNote").textContent=bl+mi+ina===0?"Very clean game by this engine's evaluation.":"Review the critical swings: "+bl+" blunders, "+mi+" mistakes and "+ina+" inaccuracies. Compare each move with the engine's suggested continuation.";
   status("Analysis complete.");
