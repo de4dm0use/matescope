@@ -5,7 +5,7 @@ A free, browser-based chess analysis and training site for GitHub Pages. Import 
 ## Features
 
 - Paste PGN or upload \`.pgn\` / \`.txt\` files
-- Find recent public games using a Chess.com username
+- Find recent public games using a Chess.com username and bulk-save the results to your library
 - Custom inline SVG Staunton-style chess pieces
 - Four board colour themes, board flipping and last-move highlighting
 - Click or drag pieces in a legal-move exploration mode
@@ -16,7 +16,7 @@ A free, browser-based chess analysis and training site for GitHub Pages. Import 
 - Move-by-move coach explanations, including the engine's preferred move and best reply
 - Opening, middlegame and endgame performance breakdown
 - Lichess Masters opening explorer with master-game statistics and popular continuations
-- Mistake training: turns inaccuracies, mistakes and blunders into playable positions
+- Mistake training: turns inaccuracies, mistakes and blunders into playable positions, with saved attempt/correct/solved progress
 - Browser-local game library with search, analysis summaries and PGN export
 - Dark and light themes
 - No application server, account, API key or build step
