@@ -361,10 +361,13 @@ function renderVerdicts() {
 function buildTraining() {
   state.training=state.rows.filter(row=>row.verdict==="Blunder"||row.verdict==="Mistake"||row.verdict==="Inaccuracy").sort((a,b)=>b.loss-a.loss).map(row=>({
     ply:row.ply,move:row.move,color:row.color,fen:state.positions[row.ply-1],best:row.best,bestSan:row.bestSan,
-    loss:row.loss,bestLineSan:row.bestLineSan,bestReason:moveDescription(state.positions[row.ply-1],row.best)
+    loss:row.loss,bestLineSan:(row.bestLineSan||[]).slice(1),bestReason:moveDescription(state.positions[row.ply-1],row.best)
   }));
   $("trainingCount").textContent=state.training.length+" positions from this game";
   $("trainingPanel").classList.toggle("hidden",!state.training.length);
+  $("startTraining").textContent="Start training";
+  $("exitTraining").disabled=true;
+  $("nextPuzzle").disabled=true;
 }
 function renderAnalysis() {
   if(!state.rows.length)return;
@@ -384,6 +387,8 @@ function renderAnalysis() {
 }
 async function analyseGame() {
   if(!state.moves.length||$("analyse").disabled)return;
+  if(state.trainingMode)endTraining();
+  if(state.exploreGame)endExplore();
   $("analyse").disabled=true;$("progressWrap").classList.remove("hidden");$("progressBar").style.width="0%";
   state.analysisDepth=Number($("depth").value)||13;
   try {
@@ -484,7 +489,8 @@ function endTraining() {
 }
 function startTraining(index=0) {
   if(!state.training.length){status("No mistakes are available to practise. Analyse the game first.");return;}
-  state.savedFlip=state.flipped;state.trainingIndex=Math.max(0,Math.min(index,state.training.length-1));
+  if(!state.trainingMode)state.savedFlip=state.flipped;
+  state.trainingIndex=Math.max(0,Math.min(index,state.training.length-1));
   state.trainingMode=true;state.exploreGame=null;state.selectedSquare=null;
   const puzzle=state.training[state.trainingIndex];
   state.trainingGame=new Chess(puzzle.fen);state.flipped=puzzle.color==="b";
