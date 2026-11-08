@@ -7,7 +7,7 @@ const state = {
   evals: [], rows: [], pgn: "", headers: {}, bestLines: [], arrowUci: null,
   exploreGame: null, exploreBaseFen: null, trainingGame: null, training: [],
   trainingIndex: 0, trainingMode: false, trainingSolved: new Set(), selectedSquare: null,
-  flipped: false, openingFen: null, openingData: null, analysisDepth: 13
+  flipped: false, openingFen: null, openingData: null, analysisDepth: 13, openingLoading: false
 };
 
 function esc(value) {
@@ -453,7 +453,8 @@ async function analysePosition() {
   finally{$("analysePosition").disabled=false;$("analyse").disabled=false;}
 }
 async function lookupOpening(fen,quiet=false) {
-  if(!fen)return;
+  if(!fen||state.openingLoading)return;
+  state.openingLoading=true;$("lookupOpening").disabled=true;
   state.openingFen=fen;
   $("openingResults").innerHTML='<div class="empty-state">Querying Lichess opening explorer…</div>';
   try {
@@ -488,6 +489,8 @@ async function lookupOpening(fen,quiet=false) {
   } catch(error) {
     $("openingResults").innerHTML='<div class="empty-state">Opening lookup unavailable. Check your connection and try again. '+esc(error.message)+'</div>';
     if(!quiet)status("Could not reach the Lichess opening database.",true);
+  } finally {
+    state.openingLoading=false;$("lookupOpening").disabled=false;
   }
 }
 function startExplore() {
