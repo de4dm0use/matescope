@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b111b">
+  <meta name="description" content="Free browser-based chess game analysis powered by Stockfish. Review PGNs, study openings and train from your mistakes.">
   <title>MateScope — Chess analysis</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="importmap">
@@ -17,9 +18,10 @@
   </header>
   <main class="shell">
     <section class="hero">
-      <div><div class="eyebrow">YOUR PERSONAL CHESS LAB</div><h1>See the game.<br><span>Understand the moves.</span></h1><p>Import a game and let Stockfish uncover the turning points.</p></div>
+      <div><div class="eyebrow">YOUR PERSONAL CHESS LAB</div><h1>See the game.<br><span>Understand the moves.</span></h1><p>Import a game, explore engine lines and turn mistakes into training.</p></div>
       <div class="hero-chip">♞ <span>LOCAL ENGINE ANALYSIS</span></div>
     </section>
+
     <section class="import-card panel">
       <div class="section-heading"><div><div class="eyebrow">START HERE</div><h2>Bring in a game</h2></div><span class="step">01 / IMPORT</span></div>
       <div class="tabs"><button class="tab active" data-tab="pgn">Paste / upload PGN</button><button class="tab" data-tab="chesscom">Chess.com username</button></div>
@@ -34,20 +36,50 @@
       </div>
       <div id="importStatus" class="status-line" role="status">Ready when you are.</div>
     </section>
+
+    <section class="panel library-panel" id="libraryPanel">
+      <div class="library-heading"><div><div class="eyebrow">YOUR COLLECTION</div><h2>Game library</h2><small id="libraryStats">0 games saved locally</small></div><div class="library-heading-actions"><span class="muted" id="libraryCount">0 saved games</span><button class="secondary" id="libraryToggle">Show library</button></div></div>
+      <div id="libraryBody" class="hidden">
+        <input id="librarySearch" class="library-search" type="search" placeholder="Search players, event or date…">
+        <div id="libraryList" class="library-list"><div class="empty-state">Save a game to build your local library.</div></div>
+        <p class="fineprint">Your saved games stay in this browser using local storage. They are not uploaded to a server.</p>
+      </div>
+    </section>
+
     <section id="workspace" class="workspace hidden">
-      <div class="section-heading workspace-title"><div><div class="eyebrow">GAME REVIEW</div><h2 id="gameTitle">Imported game</h2><div class="game-meta" id="gameMeta">PGN game</div></div><button class="secondary" id="newGame">＋ New game</button></div>
+      <div class="section-heading workspace-title"><div><div class="eyebrow">GAME REVIEW</div><h2 id="gameTitle">Imported game</h2><div class="game-meta" id="gameMeta">PGN game</div></div><div class="workspace-actions"><span id="librarySaveState" class="fineprint"></span><button class="secondary" id="saveGame">Save game</button><button class="secondary" id="exportGame">Export PGN</button><button class="secondary" id="newGame">＋ New game</button></div></div>
+
       <div class="analysis-layout">
         <section class="board-panel panel">
           <div class="player-label"><span class="avatar">♚</span><div><b id="blackName">Black</b><small id="blackRating">—</small></div><span class="player-side">BLACK</span></div>
-          <div class="board-wrap"><div class="eval-bar"><div id="evalFill"></div><span id="evalText">—</span></div><div class="board" id="board" aria-label="Chess board"></div></div>
+          <div class="board-wrap"><div class="eval-bar"><div id="evalFill"></div><span id="evalText">—</span></div><div class="board-stage"><div class="board" id="board" aria-label="Chess board"></div><svg id="boardOverlay" class="board-overlay" viewBox="0 0 8 8" aria-hidden="true"></svg></div></div>
           <div class="player-label bottom-player"><span class="avatar">♔</span><div><b id="whiteName">White</b><small id="whiteRating">—</small></div><span class="player-side">WHITE</span></div>
           <div class="board-controls"><button id="firstMove" title="First move">|◀</button><button id="prevMove" title="Previous move">‹</button><span id="moveCounter">Start position</span><button id="nextMove" title="Next move">›</button><button id="lastMove" title="Last move">▶|</button></div>
+          <div class="board-tools">
+            <button class="tool-button" id="explorePosition">Explore position</button><button class="tool-button" id="undoExplore" disabled>Undo</button><button class="tool-button" id="resetExplore" disabled>Reset</button><button class="tool-button" id="exitExplore" disabled>Exit</button><button class="tool-button" id="flipBoard">Flip board</button>
+            <label class="theme-choice">Board <select id="boardTheme"><option value="classic">Classic</option><option value="wood">Walnut</option><option value="ocean">Ocean</option><option value="mono">Monochrome</option></select></label>
+          </div>
+          <div class="board-mode-status" id="boardModeStatus">Review mode · select a move or explore a position.</div>
         </section>
+
         <aside class="side-column">
-          <section class="panel eval-panel"><div class="panel-heading"><h3>Position evaluation</h3><span class="live-dot">LIVE</span></div><div class="eval-number" id="evalNumber">—</div><div class="eval-caption" id="evalCaption">Run analysis to evaluate this game</div><div class="chart-wrap"><canvas id="evalChart" height="110"></canvas></div></section>
+          <section class="panel eval-panel"><div class="panel-heading"><h3>Position evaluation</h3><span class="live-dot">ENGINE</span></div><div class="eval-number" id="evalNumber">—</div><div class="eval-caption" id="evalCaption">Run analysis to evaluate this game</div><div class="chart-wrap"><canvas id="evalChart" height="110"></canvas></div></section>
+          <section class="panel position-panel">
+            <div class="panel-heading"><h3>Best continuations</h3><span class="mini-label">TOP 3</span></div>
+            <p class="fineprint">Analyse the current position to compare the strongest engine lines.</p>
+            <button class="primary compact-primary" id="analysePosition">Find best moves ↗</button>
+            <div id="variationsList" class="variations-list"><div class="empty-state">Analyse a position to see the engine’s top continuations.</div></div>
+          </section>
           <section class="panel moves-panel"><div class="panel-heading"><h3>Moves</h3><span id="moveCount" class="muted">0 plies</span></div><div id="moveList" class="move-list"><div class="empty-state">Your moves will appear here.</div></div></section>
+          <section class="panel opening-panel">
+            <div class="panel-heading"><h3>Opening explorer</h3><span class="mini-label">LICHESS MASTERS</span></div>
+            <p class="fineprint">Master-game statistics for the current opening position.</p>
+            <button class="tool-button" id="lookupOpening">Explore this position</button>
+            <div id="openingResults" class="opening-results"><div class="empty-state">Opening data will appear here.</div></div>
+          </section>
         </aside>
       </div>
+
       <section class="panel review-panel">
         <div class="section-heading"><div><div class="eyebrow">ENGINE REPORT</div><h2>Game insights</h2></div><div class="analysis-controls"><label>Depth <select id="depth"><option value="10">10 · Quick</option><option value="13" selected>13 · Strong</option><option value="16">16 · Deep</option></select></label><button class="primary" id="analyse">Analyse game <span>↗</span></button></div></div>
         <div class="progress-wrap hidden" id="progressWrap"><div class="progress-track"><div id="progressBar"></div></div><div id="progressText">Preparing engine…</div></div>
@@ -55,14 +87,24 @@
           <div class="stat"><span>EST. WHITE ACCURACY</span><strong id="whiteAccuracy">—</strong><small id="whiteCounts">Awaiting analysis</small></div>
           <div class="stat"><span>EST. BLACK ACCURACY</span><strong id="blackAccuracy">—</strong><small id="blackCounts">Awaiting analysis</small></div>
           <div class="stat"><span>BIGGEST SWING</span><strong id="biggestSwing">—</strong><small>Largest evaluation loss</small></div>
-          <div class="stat"><span>OPENING</span><strong class="opening-name" id="openingName">—</strong><small id="openingEco">From PGN metadata</small></div>
+          <div class="stat"><span>OPENING</span><strong class="opening-name" id="openingName">—</strong><small id="openingEco">Opening database</small></div>
         </div>
-        <div class="review-columns"><div><h3>Move-by-move verdicts</h3><p class="fineprint">Centipawn loss, estimated move score and the engine’s best alternative.</p><div id="verdicts" class="verdict-list"><div class="empty-state">Start engine analysis to see move classifications.</div></div></div><div class="coach-card"><div class="coach-icon">✦</div><h3>Coach's note</h3><p id="coachNote">Your review will highlight the critical moments, missed opportunities and best continuations.</p></div></div>
+        <div class="review-columns">
+          <div><h3>Move-by-move verdicts</h3><p class="fineprint">Centipawn loss, estimated move score and the engine’s preferred alternative. Select a move for a breakdown.</p><div id="verdicts" class="verdict-list"><div class="empty-state">Start engine analysis to see move classifications.</div></div></div>
+          <div class="coach-card"><div class="coach-icon">✦</div><h3>Chess coach</h3><p id="coachNote">Your review will highlight the critical moments, missed opportunities and best continuations.</p><div id="coachDetails" class="coach-details"></div></div>
+        </div>
+        <section class="phase-section"><div class="panel-heading"><h3>Performance by game phase</h3><span class="mini-label">ESTIMATED MOVE SCORES</span></div><div id="phaseReport" class="phase-report"><div class="empty-state">Run game analysis to compare your opening, middlegame and endgame.</div></div></section>
       </section>
-      <footer class="disclaimer">MateScope is an independent project and is not affiliated with Chess.com. Engine evaluations are computer estimates, not guarantees.</footer>
+
+      <section id="trainingPanel" class="panel training-panel hidden">
+        <div class="training-heading"><div><div class="eyebrow">TACTICAL PRACTICE</div><h2>Train your mistakes</h2><p id="trainingCount" class="fineprint">0 positions from this game</p></div><div class="training-actions"><button class="secondary" id="exitTraining">Exit training</button><button class="primary" id="startTraining">Restart</button></div></div>
+        <div class="training-content"><div><strong id="trainingPosition">Find the best move</strong><p id="trainingMessage">The answer is hidden. Play the strongest move on the board above.</p><p id="trainingContinuation" class="fineprint"></p></div><button class="primary" id="nextPuzzle" disabled>Next puzzle →</button></div>
+        <p class="fineprint">MateScope turns inaccuracies, mistakes and blunders from this game into practice positions. Your move is checked against the selected Stockfish depth.</p>
+      </section>
+      <footer class="disclaimer">MateScope is independent and is not affiliated with Chess.com or Lichess. Accuracy and move labels are MateScope estimates, not official Chess.com statistics.</footer>
     </section>
     <footer class="site-footer">MATESCOPE <span>BUILT FOR BETTER CHESS</span><a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noreferrer">Stockfish engine ↗</a></footer>
   </main>
-  <script type="module" src="./app.js?v=20261108-3"></script>
+  <script type="module" src="./app.js?v=20261108-4"></script>
 </body>
 </html>
