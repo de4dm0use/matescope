@@ -26,7 +26,7 @@ function renderBoard(){
  b.forEach((rank,r)=>rank.forEach((p,c)=>{
   const sq=document.createElement("button");sq.type="button";sq.className="square "+((r+c)%2?"dark":"light");
   const name="abcdefgh"[c]+(8-r);if(last&&(last.from===name||last.to===name))sq.classList.add("last");
-  sq.innerHTML=(p?'<span class="piece">'+glyph[p.color+p.type]+'</span>':"")+(c===0?'<span class="coord">'+(8-r)+'</span>':"")+(r===7?'<span class="coord" style="left:auto;right:4px;top:auto;bottom:1px">'+ "abcdefgh"[c] +'</span>':"");
+  sq.innerHTML=(p?'<span class="piece '+(p.color==="w"?"white-piece":"black-piece")+'" aria-hidden="true">'+glyph[p.color+p.type]+'</span>':"")+(c===0?'<span class="coord">'+(8-r)+'</span>':"")+(r===7?'<span class="coord" style="left:auto;right:4px;top:auto;bottom:1px">'+ "abcdefgh"[c] +'</span>':"");
   $("board").appendChild(sq);
  }));
  $("moveCounter").textContent=state.cursor===0?"Start position":"Move "+Math.ceil(state.cursor/2)+" · "+(state.cursor%2?"White":"Black")+" played";
