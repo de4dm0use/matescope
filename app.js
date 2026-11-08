@@ -25,6 +25,27 @@ function writeLibrary(items) {
   try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(items.slice(0,100))); return true; }
   catch { status("Browser storage is full or unavailable. Export your PGN to keep a copy.", true); return false; }
 }
+function readTrainingBook() {
+  try { return JSON.parse(localStorage.getItem("matescope.training.v1") || "{}"); }
+  catch { return {}; }
+}
+function trainingKey(puzzle) { return puzzle.fen + "|" + puzzle.best; }
+function trainingRecord(puzzle) {
+  const book=readTrainingBook();
+  return book[trainingKey(puzzle)] || {attempts:0,correct:0,solved:false};
+}
+function recordTrainingAttempt(puzzle,correct) {
+  const book=readTrainingBook(),key=trainingKey(puzzle);
+  const record=book[key] || {attempts:0,correct:0,solved:false};
+  record.attempts++;
+  if(correct){record.correct++;record.solved=true;}
+  record.lastAttempt=Date.now();book[key]=record;
+  try{localStorage.setItem("matescope.training.v1",JSON.stringify(book));}catch{}
+  return record;
+}
+function updateTrainingHistory(puzzle,record) {
+  $("trainingHistory").textContent="Saved progress · "+record.attempts+" legal attempts · "+record.correct+" correct · "+(record.solved?"solved before":"not solved yet");
+}
 function currentFen() {
   if (state.trainingMode && state.trainingGame) return state.trainingGame.fen();
   if (state.exploreGame) return state.exploreGame.fen();
@@ -229,13 +250,15 @@ function attemptBoardMove(from,to) {
     const uci=move.from+move.to+(move.promotion||"");
     const puzzle=state.training[state.trainingIndex];
     if (uci!==puzzle.best) {
-      game.undo(); $("trainingMessage").textContent="That move is legal, but it is not the engine’s best move. Try again.";
-      renderBoard(); return;
+      game.undo(); const record=recordTrainingAttempt(puzzle,false);
+      $("trainingMessage").textContent="That move is legal, but it is not the engine’s best move. Try again.";
+      updateTrainingHistory(puzzle,record);renderBoard();return;
     }
     state.trainingSolved.add(state.trainingIndex);
+    const record=recordTrainingAttempt(puzzle,true);
     $("trainingMessage").textContent="Correct. "+puzzle.bestSan+" is the best move. " + (puzzle.bestReason || "");
     $("trainingContinuation").textContent=puzzle.bestLineSan ? "Suggested continuation: "+puzzle.bestLineSan.join(" ") : "";
-    $("nextPuzzle").disabled=false;
+    updateTrainingHistory(puzzle,record);$("nextPuzzle").disabled=false;
   } else {
     $("boardModeStatus").textContent="Exploration line: "+game.history().join(" ");
   }
@@ -501,6 +524,7 @@ function startTraining(index=0) {
   $("trainingPosition").textContent=(puzzle.color==="w"?"White":"Black")+" to move · original move "+Math.ceil(puzzle.ply/2);
   $("trainingMessage").textContent="Find the strongest move. The answer is hidden.";
   $("trainingContinuation").textContent="Engine loss on the original move: "+Math.round(puzzle.loss)+" cp.";
+  updateTrainingHistory(puzzle,trainingRecord(puzzle));
   $("nextPuzzle").disabled=true;
   renderBoard();$("trainingPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
 }
@@ -523,6 +547,22 @@ function saveCurrentGame(silent=false) {
   if(existing>=0)library.splice(existing,1);
   library.unshift(entry);
   if(writeLibrary(library)){renderLibrary();$("librarySaveState").textContent="Saved in this browser";if(!silent)status("Game saved to your local MateScope library.");}
+}
+function saveFetchedGames(games) {
+  const library=readLibrary();let added=0;
+  for(const game of games) {
+    if(!game.pgn)continue;
+    const white=game.white?.username||"White",black=game.black?.username||"Black";
+    if(library.some(item=>item.pgn===game.pgn))continue;
+    library.unshift({
+      id:String(Date.now())+"-"+Math.random().toString(36).slice(2,8),
+      title:white+" vs "+black,white,black,
+      date:game.end_time?new Date(game.end_time*1000).toLocaleDateString():"",
+      savedAt:Date.now(),pgn:game.pgn,analysis:null
+    });
+    added++;
+  }
+  if(writeLibrary(library)){renderLibrary();status("Saved "+added+" new games to your MateScope library.");}
 }
 function loadSavedGame(id) {
   const entry=readLibrary().find(item=>item.id===id);if(!entry)return;
@@ -600,12 +640,13 @@ $("findGames").onclick=async()=>{
     let archives=(await response.json()).archives||[];archives=archives.slice(-6).reverse();let games=[];
     for(const url of archives){const result=await fetch(url);if(result.ok){const data=await result.json();games.push(...(data.games||[]).reverse());}if(games.length>=30)break;}
     games=games.slice(0,30);if(!games.length)throw new Error("No recent public games found.");
-    $("gamePicker").innerHTML=games.map((game,index)=>{
+    $("gamePicker").innerHTML='<div class="bulk-save-row"><span>'+games.length+' recent public games found</span><button class="tool-button" id="saveAllGames">Save all to library</button></div>'+games.map((game,index)=>{
       const white=game.white||{},black=game.black||{},date=game.end_time?new Date(game.end_time*1000).toLocaleDateString():"Date unknown";
       const result=(white.username||"White")+" "+(white.result==="win"?"1–0":black.result==="win"?"0–1":"½–½")+" "+(black.username||"Black");
       return '<button class="game-option" data-game="'+index+'"><span><b>'+esc(result)+'</b><br><small>'+esc(game.time_class||"game")+' · '+esc(date)+'</small></span><span>Import →</span></button>';
     }).join("");
-    $("gamePicker").querySelectorAll("button").forEach(button=>button.onclick=()=>{
+    $("saveAllGames").onclick=()=>saveFetchedGames(games);
+    $("gamePicker").querySelectorAll("button[data-game]").forEach(button=>button.onclick=()=>{
       const game=games[Number(button.dataset.game)];
       try{parseGame(game.pgn,{title:game.white.username+" vs "+game.black.username,white:game.white.username,black:game.black.username});status("Chess.com game imported.");}
       catch(error){status(error.message,true);}
