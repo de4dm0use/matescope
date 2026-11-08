@@ -142,4 +142,4 @@ body.light .opening-stats span{background:#f5f8fa;color:var(--text)}
 .square .file-coord{left:auto;right:4px;top:auto;bottom:1px}
 
 .bulk-save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:#10251f;border:1px solid #315544;border-radius:8px;margin:8px 0}.bulk-save-row span{font-size:10px;color:#b5cbbf}.training-history{font-size:9px!important;color:#9fe0be!important;margin-top:8px!important}
-body.light .bulk-save-row{background:#eaf6ef}.body.light .training-history{color:#496858}
+body.light .bulk-save-row{background:#eaf6ef}body.light .training-history{color:#496858}
