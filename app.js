@@ -261,13 +261,14 @@ function engineMessage(line) {
     state.ready=true;$("engineState").classList.add("ready");$("engineState").innerHTML="<i></i> Stockfish ready";
   }
   if (line.startsWith("info ") && state.currentSearch) {
-    const m=line.match(/depth (\d+).*?score (cp|mate) (-?\d+).*?(?: pv (.+))?$/);
+    const m=line.match(/depth (\d+).*?score (cp|mate) (-?\d+)/);
     if(m) {
       const depth=Number(m[1]),raw=Number(m[3]),side=state.currentSearch.side;
       const numeric=m[2]==="mate"?(raw>0?10000-Math.min(99,Math.abs(raw)): -10000+Math.min(99,Math.abs(raw))):raw;
       const score=side==="b"?-numeric:numeric;
       const mp=line.match(/multipv (\d+)/),index=mp?Number(mp[1]):1;
-      const pv=(m[4]||"").trim().split(/\s+/).filter(Boolean);
+      const pvMatch=line.match(/ pv (.+)$/);
+      const pv=(pvMatch?.[1]||"").trim().split(/\s+/).filter(Boolean);
       const old=state.currentSearch.lines.get(index);
       if(!old||depth>=old.depth)state.currentSearch.lines.set(index,{index,depth,score,pv,uci:pv[0]||""});
     }
@@ -473,7 +474,12 @@ function endExplore() {
 function endTraining() {
   state.trainingMode=false;state.trainingGame=null;state.selectedSquare=null;
   state.flipped=state.savedFlip??state.flipped;
-  $("trainingPanel").classList.add("hidden");
+  $("trainingPanel").classList.remove("hidden");
+  $("trainingMessage").textContent="Training paused. Start training to practise these positions again.";
+  $("trainingContinuation").textContent="";
+  $("startTraining").textContent="Start training";
+  $("exitTraining").disabled=true;
+  $("nextPuzzle").disabled=true;
   renderBoard();
 }
 function startTraining(index=0) {
@@ -483,6 +489,8 @@ function startTraining(index=0) {
   const puzzle=state.training[state.trainingIndex];
   state.trainingGame=new Chess(puzzle.fen);state.flipped=puzzle.color==="b";
   $("trainingPanel").classList.remove("hidden");
+  $("startTraining").textContent="Restart";
+  $("exitTraining").disabled=false;
   $("trainingPosition").textContent=(puzzle.color==="w"?"White":"Black")+" to move · original move "+Math.ceil(puzzle.ply/2);
   $("trainingMessage").textContent="Find the strongest move. The answer is hidden.";
   $("trainingContinuation").textContent="Engine loss on the original move: "+Math.round(puzzle.loss)+" cp.";
