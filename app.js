@@ -99,7 +99,7 @@ function parseGame(pgn, extra={}) {
   const replay = new Chess(), positions = [replay.fen()];
   moves.forEach(move => { replay.move(move); positions.push(replay.fen()); });
   const headers = game.getHeaders();
-  state.moves = moves; state.positions = positions; state.cursor = 0; state.evals = []; state.rows = [];
+  state.moves = moves; state.positions = positions; state.cursor = 0; state.evals = []; state.rows = []; state.flipped = false;
   state.pgn = pgn; state.headers = headers; state.bestLines = []; state.arrowUci = null;
   state.exploreGame = null; state.trainingGame = null; state.trainingMode = false; state.selectedSquare = null;
   $("workspace").classList.remove("hidden");
@@ -386,10 +386,10 @@ function renderAnalysis() {
   if(state.cursor<state.evals.length)updateEval(state.evals[state.cursor]);
 }
 async function analyseGame() {
-  if(!state.moves.length||$("analyse").disabled)return;
+  if(!state.moves.length||$("analyse").disabled||$("analysePosition").disabled)return;
   if(state.trainingMode)endTraining();
   if(state.exploreGame)endExplore();
-  $("analyse").disabled=true;$("progressWrap").classList.remove("hidden");$("progressBar").style.width="0%";
+  $("analyse").disabled=true;$("analysePosition").disabled=true;$("progressWrap").classList.remove("hidden");$("progressBar").style.width="0%";
   state.analysisDepth=Number($("depth").value)||13;
   try {
     status("Starting local Stockfish engine…");await ensureEngine();
@@ -416,17 +416,18 @@ async function analyseGame() {
     if(saved)saveCurrentGame(true);
   } catch(error) {
     status(error.message||"Analysis failed.",true);$("progressText").textContent=error.message||"Analysis failed.";
-  } finally { $("analyse").disabled=false; }
+  } finally { $("analyse").disabled=false;$("analysePosition").disabled=false; }
 }
 async function analysePosition() {
-  $("analysePosition").disabled=true;
+  if($("analyse").disabled||$("analysePosition").disabled)return;
+  $("analysePosition").disabled=true;$("analyse").disabled=true;
   try {
     await ensureEngine();
     const fen=currentFen(),result=await search(fen,Number($("depth").value)||13,3);
     state.bestLines=result.lines;state.arrowUci=result.best;renderVariations(fen);renderBoard();
     status("Position analysed. Top engine continuations are shown beside the board.");
   } catch(error){status(error.message,true);}
-  finally{$("analysePosition").disabled=false;}
+  finally{$("analysePosition").disabled=false;$("analyse").disabled=false;}
 }
 async function lookupOpening(fen,quiet=false) {
   if(!fen)return;
