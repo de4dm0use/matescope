@@ -138,3 +138,5 @@ body.light .opening-stats span{background:#f5f8fa;color:var(--text)}
   .variation-row{grid-template-columns:21px 1fr}
   .variation-play{grid-column:2}
 }
+
+.square .file-coord{left:auto;right:4px;top:auto;bottom:1px}
